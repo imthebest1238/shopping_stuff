@@ -1,0 +1,13 @@
+# secrets and local state (browser profile with your store logins!)
+.env
+data/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# test output
+tests/output/
