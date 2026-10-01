@@ -134,6 +134,7 @@ Put these in the `.env` file (see `.env.example`):
 | `SHOP_DATA_DIR` | `./data` | Where settings and the browser profile are kept |
 | `SHOP_HEADLESS` | `false` | Hide the agent's browser window (not recommended) |
 | `SHOP_PASSWORD` | (none) | Lets other computers log in to the chat page with this password (for Docker / a server) |
+| `SHOP_BROWSER_VIEW_PORT` | (none) | Docker only: host port of the browser view, so the chat shows an "Open the shop browser" button |
 | `VNC_PASSWORD` | (random) | Docker only: password for the agent's browser view (first 8 characters count) |
 
 The spending limit and your notes are set on the chat page (Settings) and saved in `data/settings.json`.

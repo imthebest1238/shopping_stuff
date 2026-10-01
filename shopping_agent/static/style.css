@@ -56,8 +56,10 @@ body {
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-button {
+button, a.button {
   font: inherit;
+  display: inline-block;
+  text-decoration: none;
   cursor: pointer;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -66,10 +68,11 @@ button {
   color: var(--text);
 }
 button:disabled { opacity: 0.55; cursor: default; }
+a.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
 button.danger { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
 button.ok { background: var(--ok); border-color: var(--ok); color: #fff; font-weight: 600; }
-button.ghost { background: transparent; }
+button.ghost, a.button.ghost { background: transparent; }
 button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 input, textarea {

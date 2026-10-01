@@ -88,10 +88,22 @@ def settings_text(settings: UserSettings) -> str:
     )
 
 
-def build_system_prompt(settings: UserSettings, today: date | None = None, memory_text: str = "") -> str:
+REMOTE_VIEW_TEXT = """\
+## Where the user sees the browser
+The browser runs on a server, not on the user's own screen. The user only sees it after clicking \
+the "Open the shop browser" button in the chat, which opens it in a separate page (it may ask for \
+the browser password). Never say you opened a tab or window for them. When you hand over (e.g. to \
+log in with their email and password), say plainly what to do, for example: "Please click 'Open the \
+shop browser', log in to Migros there with your email and password, then come back here and click \
+'I'm done'." """
+
+
+def build_system_prompt(settings: UserSettings, today: date | None = None, memory_text: str = "",
+                        remote_view: bool = False) -> str:
     today = today or date.today()
     memory = f"\n\n{memory_text}" if memory_text else ""
-    return f"{SYSTEM_PROMPT}\n{settings_text(settings)}{memory}\n\nToday's date: {today.isoformat()}."
+    remote = f"\n\n{REMOTE_VIEW_TEXT}" if remote_view else ""
+    return f"{SYSTEM_PROMPT}\n{settings_text(settings)}{memory}{remote}\n\nToday's date: {today.isoformat()}."
 
 
 def _tool(name: str, description: str, properties: dict, required: list[str] | None = None) -> dict:

@@ -216,7 +216,8 @@ class ShoppingAgent:
         """Handle one user message: work until Claude has nothing left to do."""
         settings_now = settings_text(self.settings)
         if self.system_prompt is None:
-            self.system_prompt = build_system_prompt(self.settings, memory_text=self.memory.prompt_text())
+            self.system_prompt = build_system_prompt(self.settings, memory_text=self.memory.prompt_text(),
+                                                     remote_view=bool(self.config.browser_view_port))
             self._conversation_settings = settings_now
         if self.messages and self.messages[-1]["role"] == "system":
             # The last request failed before Claude replied to this note. A system message

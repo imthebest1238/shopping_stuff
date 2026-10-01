@@ -190,6 +190,7 @@ class App:
         return {
             "type": "hello",
             "model": self.config.model,
+            "browser_view_port": self.config.browser_view_port,
             "status": self.hub.status,
             "busy": self.busy,
             "settings": self.settings.to_dict(),

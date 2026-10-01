@@ -49,6 +49,7 @@ class Config:
     max_steps: int = 150
     open_ui: bool = True
     password: str | None = None  # SHOP_PASSWORD: allow login from other computers
+    browser_view_port: int | None = None  # SHOP_BROWSER_VIEW_PORT: the browser is watched via noVNC on this port
 
     @property
     def profile_dir(self) -> Path:
@@ -73,6 +74,7 @@ class Config:
             max_steps=int(os.environ.get("SHOP_MAX_STEPS", cls.max_steps)),
             open_ui=_env_bool("SHOP_OPEN_UI", cls.open_ui),
             password=os.environ.get("SHOP_PASSWORD") or None,
+            browser_view_port=int(os.environ["SHOP_BROWSER_VIEW_PORT"]) if os.environ.get("SHOP_BROWSER_VIEW_PORT") else None,
         )
 
 

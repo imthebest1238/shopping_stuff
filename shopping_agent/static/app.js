@@ -17,6 +17,7 @@ let settings = { max_order_total: 100, currency: "USD", notes: "" };
 let currentSteps = null; // the <div class="steps"> that new actions are appended to
 const cards = new Map(); // interaction id -> card element
 const baseTitle = document.title;
+let viewUrl = null; // the agent's browser (noVNC) when it runs on a server, else null
 
 // ------------------------------------------------------------------ helpers
 
@@ -172,7 +173,7 @@ function renderEvent(ev, live) {
       break;
     case "handover":
       add(handoverCard(ev));
-      if (live) notify("The agent needs you in the browser window.");
+      if (live) notify(viewUrl ? "The agent needs you: open the shop browser." : "The agent needs you in the browser window.");
       break;
     case "approval":
       add(approvalCard(ev));
@@ -230,11 +231,17 @@ function questionCard(ev) {
   return card;
 }
 
+function viewButton() {
+  return el("a", { class: "button primary", href: viewUrl, target: "_blank", rel: "noopener" }, "Open the shop browser ↗");
+}
+
 function handoverCard(ev) {
   const note = el("input", { type: "text", placeholder: "Optional note for the agent" });
   const card = el("div", { class: "card" },
-    el("h3", { text: "🙋 Your turn in the browser window" }),
+    el("h3", { text: viewUrl ? "🙋 Your turn: open the shop browser" : "🙋 Your turn in the browser window" }),
     el("div", { text: ev.reason }),
+    viewUrl ? el("div", { class: "row" }, viewButton()) : null,
+    viewUrl ? el("div", { class: "meta", text: "It opens in a new page (enter the browser password if asked). When you're finished there, come back here and click \"I'm done\"." }) : null,
     el("div", { class: "row actions" }, note,
       el("button", {
         class: "primary", type: "button",
@@ -267,7 +274,10 @@ function approvalCard(ev) {
     ...warnings.map((w) => el("div", { class: "warn", text: `⚠️ ${w}` })),
     el("div", { class: "meta", text: `Page: ${ev.page_title || ""} - ${ev.url}` }),
     shot,
-    el("div", { class: "meta", text: "Check the screenshot (click to enlarge) and the browser window before approving." }),
+    el("div", { class: "meta", text: viewUrl
+      ? "Check the screenshot (click to enlarge) before approving. To see the live page, open the shop browser."
+      : "Check the screenshot (click to enlarge) and the browser window before approving." }),
+    viewUrl ? el("div", { class: "row" }, viewButton()) : null,
     el("div", { class: "row actions" }, comment,
       el("button", { class: "ok", type: "button", onclick: () => decide(true) }, "Approve & buy"),
       el("button", { class: "danger", type: "button", onclick: () => decide(false) }, "Decline")));
@@ -285,6 +295,16 @@ function clearTranscript() {
 
 // ------------------------------------------------------------------ connection
 
+function setViewUrl(port) {
+  viewUrl = port ? `http://${location.hostname}:${port}/vnc.html?autoconnect=1&resize=scale` : null;
+  const link = $("#view-link");
+  link.hidden = !viewUrl;
+  if (viewUrl) link.href = viewUrl;
+  $("#empty-where").textContent = viewUrl
+    ? "I'll use my own browser on the server (watch it any time with \"Shop browser\" at the top)"
+    : "I'll use the browser window that opened next to this one";
+}
+
 function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
@@ -292,6 +312,7 @@ function connect() {
   ws.onmessage = (msg) => {
     const ev = JSON.parse(msg.data);
     if (ev.type === "hello") {
+      setViewUrl(ev.browser_view_port);
       clearTranscript();
       settings = ev.settings;
       for (const past of ev.events) renderEvent(past, false);

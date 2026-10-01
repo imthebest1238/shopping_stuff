@@ -27,6 +27,7 @@ services:
       SHOP_EFFORT: ${SHOP_EFFORT:-medium}
       SHOP_MAX_STEPS: ${SHOP_MAX_STEPS:-150}
       SHOP_HOST: 0.0.0.0
+      SHOP_BROWSER_VIEW_PORT: "3456"  # must match the host port of 6080 below: the chat links to it
       SHOP_OPEN_UI: "false"
       TZ: ${TZ:-Europe/Zurich}
     ports:

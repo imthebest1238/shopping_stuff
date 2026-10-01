@@ -15,6 +15,7 @@
     <div class="topbar-right">
       <span id="status" class="status" data-state="idle">Ready</span>
       <span id="cost" class="cost" title="Approximate Claude API cost for this chat"></span>
+      <a id="view-link" class="button ghost" target="_blank" rel="noopener" hidden>Shop browser ↗</a>
       <button id="settings-btn" class="ghost" type="button">Settings</button>
       <button id="reset-btn" class="ghost" type="button">New chat</button>
     </div>
@@ -26,7 +27,7 @@
     <div id="transcript" class="transcript">
       <section id="empty" class="empty">
         <h1>What should I shop for?</h1>
-        <p>I'll use the browser window that opened next to this one: searching stores, comparing
+        <p><span id="empty-where">I'll use the browser window that opened next to this one</span>: searching stores, comparing
           options and filling your cart. <strong>Nothing is bought until you approve it here.</strong>
           When a store needs you to log in or enter card details, I'll hand the browser to you.</p>
         <div class="examples">
