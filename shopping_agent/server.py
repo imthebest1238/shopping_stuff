@@ -23,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from .agent import ShoppingAgent
 from .browser import BrowserSession
 from .config import Config, UserSettings
+from .memory import Memory
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +98,9 @@ class App:
             executable_path=config.browser_executable,
             blocked_origins=ui_origins,
         )
-        self.agent = ShoppingAgent(config, self.browser, self.hub.emit, self.settings, client=client)
+        self.memory = Memory.load(config.data_dir / "memory.json")
+        self.agent = ShoppingAgent(config, self.browser, self.hub.emit, self.settings, client=client,
+                                   memory=self.memory)
         self.task: asyncio.Task | None = None
 
     @property

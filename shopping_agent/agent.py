@@ -24,6 +24,7 @@ import anthropic
 from . import safety
 from .browser import BrowserError, BrowserSession
 from .config import Config, UserSettings
+from .memory import Memory
 from .prompts import KEEP_RESULTS_TOOLS, TOOL_SCHEMAS, TOOLS, build_system_prompt, settings_text
 
 log = logging.getLogger(__name__)
@@ -162,16 +163,19 @@ class ShoppingAgent:
         emit: Emit,
         settings: UserSettings,
         client: anthropic.AsyncAnthropic | None = None,
+        memory: Memory | None = None,
     ) -> None:
         self.config = config
         self.browser = browser
         self.emit = emit
         self.settings = settings
         self.client = client or anthropic.AsyncAnthropic()
+        self.memory = memory or Memory()
         self.messages: list[dict] = []
         self.system_prompt: str | None = None
         self._conversation_settings: str | None = None
         self._approval: safety.PurchaseApproval | None = None
+        self._approval_order: dict | None = None  # store/items/currency of the approved order, for memory
         self._pending: dict[str, _Pending] = {}
         self.usage = Usage()
 
@@ -184,6 +188,7 @@ class ShoppingAgent:
         self.system_prompt = None
         self._conversation_settings = None
         self._approval = None
+        self._approval_order = None
         self.usage = Usage()
 
     def pending_events(self) -> list[dict]:
@@ -211,7 +216,7 @@ class ShoppingAgent:
         """Handle one user message: work until Claude has nothing left to do."""
         settings_now = settings_text(self.settings)
         if self.system_prompt is None:
-            self.system_prompt = build_system_prompt(self.settings)
+            self.system_prompt = build_system_prompt(self.settings, memory_text=self.memory.prompt_text())
             self._conversation_settings = settings_now
         if self.messages and self.messages[-1]["role"] == "system":
             # The last request failed before Claude replied to this note. A system message
@@ -401,6 +406,9 @@ class ShoppingAgent:
             approval = await self._require_approval(reason)
             await self.browser.click(ref)
             self._approval = None  # one approval, one order
+            if self._approval_order:
+                self.memory.record_order(total=approval.total, **self._approval_order)
+                self._approval_order = None
             await self.emit({"type": "notice", "text": f"Clicked the order button you approved ({approval.total:.2f})."})
         else:
             await self.browser.click(ref)
@@ -514,13 +522,30 @@ class ShoppingAgent:
             self._approval = safety.PurchaseApproval(
                 site=safety.site_of(url), total=total, summary=args["items"], granted_at=time.time()
             )
+            self._approval_order = {"store": args["store"], "items": args["items"], "currency": currency}
             return (
                 "APPROVED by the user. You may now click the button that places this order (one click, "
                 "on this site, within 15 minutes). Then check the confirmation page and report the "
                 f"order number and delivery date.{comment_line}"
             )
         self._approval = None
+        self._approval_order = None
         return f"The user DECLINED this purchase. Do not place the order.{comment_line}"
+
+    async def _tool_remember(self, args: dict) -> str:
+        try:
+            fact = self.memory.remember(args["text"])
+        except ValueError as exc:
+            raise ToolInputError(str(exc)) from exc
+        await self.emit({"type": "notice", "text": f"Remembered: {fact['text']}"})
+        return f"Saved to memory as [{fact['id']}]."
+
+    async def _tool_forget(self, args: dict) -> str:
+        fact = self.memory.forget(args["id"])
+        if fact is None:
+            raise ToolInputError(f"there is no memory with id {args['id']!r}")
+        await self.emit({"type": "notice", "text": f"Forgot: {fact['text']}"})
+        return f"Deleted [{fact['id']}] from memory."
 
     async def _require_approval(self, reason: str) -> safety.PurchaseApproval:
         url = await self.browser.current_url()
@@ -587,6 +612,10 @@ def _describe_action(name: str, args: dict, label: str = "") -> str:
             return "Asking you a question"
         case "hand_over_to_user":
             return "Handing the browser over to you"
+        case "remember":
+            return f"Remembering “{clip(args['text'])}”"
+        case "forget":
+            return f"Forgetting memory {args['id']}"
         case "request_purchase_approval":
             return f"Asking for your approval ({args['total']} {args['currency']})"
     return name
