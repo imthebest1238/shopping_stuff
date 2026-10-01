@@ -24,7 +24,8 @@ def main() -> None:
             "      (get one at https://platform.claude.com/), unless you use `ant auth login`.\n",
             file=sys.stderr,
         )
-    if config.host not in {"127.0.0.1", "localhost", "::1"}:
+    # In Docker the container listens on 0.0.0.0, but docker-compose publishes it on 127.0.0.1 only.
+    if config.host not in {"127.0.0.1", "localhost", "::1"} and not os.environ.get("SHOP_IN_DOCKER"):
         print(f"Warning: SHOP_HOST={config.host} makes the agent reachable from other computers.\n", file=sys.stderr)
 
     app = create_app(config)

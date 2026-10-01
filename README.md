@@ -59,6 +59,32 @@ cp .env.example .env               # then put your key after ANTHROPIC_API_KEY=
 python -m shopping_agent
 ```
 
+### Docker
+
+The agent's browser runs on a virtual screen inside the container. You watch and control it from
+your own browser with noVNC (for logins, CAPTCHAs, card details and checking orders).
+
+```bash
+cp .env.example .env               # then put your key after ANTHROPIC_API_KEY=
+docker compose up -d --build
+docker compose logs shopping-agent # shows the secret chat link
+```
+
+- **Chat page:** the `?token=` link from the logs (`http://127.0.0.1:8000/?token=...`)
+- **Agent's browser window:** `http://127.0.0.1:6080/vnc.html?autoconnect=1&resize=scale`.
+  The password is in `data/vnc_password`.
+
+Both are published on `127.0.0.1` only, so other computers can't reach them. `data/` is mounted
+into the container, so settings, memory and store logins are kept. `.env` and `data/` are never
+copied into the image. Stop it with `docker compose down`.
+
+**Prebuilt image / Portainer:** GitHub Actions (`.github/workflows/docker-image.yml`) runs the tests and
+pushes the image to `ghcr.io/<owner>/<repo>` on every push (`:latest` on the default branch, plus a
+tag per branch and per commit). Deploy it with `docker-compose.portainer.yml` as a Portainer stack,
+setting `ANTHROPIC_API_KEY` and `SHOPPING_AGENT_IMAGE` as stack environment variables. The chat link
+and VNC password are in the container logs. Reach it from another computer through an SSH tunnel:
+`ssh -L 8000:127.0.0.1:8000 -L 6080:127.0.0.1:6080 user@docker-host`.
+
 ## Using it
 
 1. **Log in to your stores once** in the agent's browser window (Amazon, Target, Walmart…). It

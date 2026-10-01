@@ -1,0 +1,9 @@
+# Never bake secrets or your store logins into the image
+.env
+data/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/output/

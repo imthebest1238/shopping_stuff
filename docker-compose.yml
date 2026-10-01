@@ -1,0 +1,21 @@
+services:
+  shopping-agent:
+    build:
+      context: .
+      args:
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
+    image: shopping-agent
+    container_name: shopping-agent
+    env_file: .env            # ANTHROPIC_API_KEY and optional SHOP_* settings
+    environment:
+      SHOP_HOST: 0.0.0.0      # inside the container only; see ports below
+      SHOP_OPEN_UI: "false"
+    ports:
+      # 127.0.0.1 only: the chat page and the browser view are NOT reachable from other computers.
+      - "127.0.0.1:8000:8000"   # chat page
+      - "127.0.0.1:6080:6080"   # the agent's browser window (noVNC)
+    volumes:
+      - ./data:/app/data        # settings, memory, store logins (keep private!)
+    shm_size: "1gb"             # Chromium needs more shared memory than Docker's 64 MB default
+    restart: unless-stopped
