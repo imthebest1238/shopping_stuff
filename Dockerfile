@@ -9,7 +9,11 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends xvfb x11vnc novnc websockify fluxbox fonts-noto-color-emoji tzdata \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && printf '%s\n' '<!doctype html><meta charset="utf-8"><title>Shop browser</title>' \
+       '<meta http-equiv="refresh" content="0; url=vnc.html?autoconnect=1&amp;resize=scale">' \
+       '<a href="vnc.html?autoconnect=1&amp;resize=scale">Open the shop browser</a>' \
+       > /usr/share/novnc/index.html
 
 WORKDIR /app
 COPY requirements.txt .
