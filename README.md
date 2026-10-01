@@ -84,8 +84,8 @@ tag per branch and per commit). Deploy it with `docker-compose.portainer.yml` as
 setting `SHOPPING_AGENT_IMAGE`, `ANTHROPIC_API_KEY`, `SHOP_PASSWORD` and optionally `VNC_PASSWORD` as
 stack environment variables. That stack is reachable from your network:
 
-- **Chat page:** `http://<docker-host-ip>:8000`, log in with `SHOP_PASSWORD`
-- **Agent's browser:** `http://<docker-host-ip>:6080/vnc.html?autoconnect=1&resize=scale`, with
+- **Chat page:** `http://<docker-host-ip>:3545`, log in with `SHOP_PASSWORD`
+- **Agent's browser:** `http://<docker-host-ip>:3456/vnc.html?autoconnect=1&resize=scale`, with
   `VNC_PASSWORD` (or the random one shown in the container logs)
 
 It is plain HTTP, so keep it on your home network and never forward these ports to the internet.

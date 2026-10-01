@@ -9,10 +9,10 @@
 #   SHOP_MODEL / SHOP_EFFORT / SHOP_MAX_STEPS  optional, see README
 #
 # Then, from any computer on your network:
-#   Chat page:            http://<docker-host-ip>:8000         (log in with SHOP_PASSWORD)
-#   Agent's browser:      http://<docker-host-ip>:6080/vnc.html?autoconnect=1&resize=scale
+#   Chat page:            http://<docker-host-ip>:3545         (log in with SHOP_PASSWORD)
+#   Agent's browser:      http://<docker-host-ip>:3456/vnc.html?autoconnect=1&resize=scale
 #
-# This is plain HTTP: keep it on your home network, don't forward these ports to the internet.
+# This is plain HTTP: keep it on your home network, don't forward ports 3545 and 3456 to the internet.
 # The chat page can approve purchases and the browser view controls your logged-in stores.
 
 services:
@@ -31,8 +31,8 @@ services:
       TZ: ${TZ:-Europe/Zurich}
     ports:
       # host-port:container-port. Change the left number to use another port on the host.
-      - "8000:8000"   # chat page (password protected)
-      - "6080:6080"   # the agent's browser window (noVNC, password protected)
+      - "3545:8000"   # chat page (password protected)
+      - "3456:6080"   # the agent's browser window (noVNC, password protected)
     volumes:
       - shopping-data:/app/data # settings, memory, VNC password and store logins (keep private!)
     shm_size: "1gb"             # Chromium needs more than Docker's 64 MB default
