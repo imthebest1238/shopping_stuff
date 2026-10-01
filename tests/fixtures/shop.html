@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head><title>Test Shop - AA Batteries</title>
+<style>
+  .fake-check input { opacity: 0; position: absolute; width: 0; height: 0; }
+  .card { cursor: pointer; border: 1px solid #ccc; margin: 8px; padding: 8px; }
+  #hidden { display: none; }
+  .spacer { height: 3000px; }
+</style></head>
+<body>
+  <header><a href="#home">Test Shop</a>
+    <form id="search" onsubmit="event.preventDefault(); document.getElementById('status').textContent='searched: ' + document.getElementById('q').value;">
+      <input id="q" name="q" type="text" placeholder="Search products">
+      <button type="submit">Search</button>
+    </form>
+  </header>
+  <p id="status">idle</p>
+  <div class="card" onclick="document.getElementById('status').textContent='card clicked'">
+    <h3>Energizer AA Batteries, 24 pack</h3><span>$18.99</span>
+    <button id="add1" onclick="event.stopPropagation(); document.getElementById('cart').textContent='1 item'">Add to cart</button>
+  </div>
+  <p>Cart: <span id="cart">empty</span></p>
+  <label class="fake-check"><input type="checkbox" id="warranty" checked> Add 2-year protection plan ($4.99)</label>
+  <label>Qty <select id="qty"><option>1</option><option>2</option><option value="3">Three</option></select></label>
+  <div id="hidden">SECRET HIDDEN TEXT</div>
+  <form id="checkout" onsubmit="event.preventDefault(); document.getElementById('status').textContent='ORDER PLACED';">
+    <label for="card">Card number</label><input id="card" name="cardnumber" autocomplete="cc-number">
+    <input id="pw" type="password" name="pw">
+    <input id="promo" name="promo" placeholder="Promo code">
+    <input type="submit" name="placeYourOrder1" value="Place your order">
+  </form>
+  <div role="button" tabindex="0" id="buynow" onclick="document.getElementById('status').textContent='BOUGHT NOW'">Buy Now</div>
+  <div class="spacer"></div>
+  <p>Footer text at the very bottom</p>
+</body></html>

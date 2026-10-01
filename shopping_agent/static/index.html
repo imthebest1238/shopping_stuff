@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shopping Agent</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">🛒</span>
+      <span>Shopping Agent</span>
+    </div>
+    <div class="topbar-right">
+      <span id="status" class="status" data-state="idle">Ready</span>
+      <span id="cost" class="cost" title="Approximate Claude API cost for this chat"></span>
+      <button id="settings-btn" class="ghost" type="button">Settings</button>
+      <button id="reset-btn" class="ghost" type="button">New chat</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <main id="scroll">
+    <div id="transcript" class="transcript">
+      <section id="empty" class="empty">
+        <h1>What should I shop for?</h1>
+        <p>I'll use the browser window that opened next to this one: searching stores, comparing
+          options and filling your cart. <strong>Nothing is bought until you approve it here.</strong>
+          When a store needs you to log in or enter card details, I'll hand the browser to you.</p>
+        <div class="examples">
+          <button type="button" class="example">Find the best-rated 24-pack of AA batteries under $20 on Amazon and buy it</button>
+          <button type="button" class="example">Compare 3 robot vacuums under $300 - don't buy yet</button>
+          <button type="button" class="example">Reorder the dish soap from my last Target order</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="composer">
+    <form id="composer">
+      <textarea id="input" rows="1" placeholder="Tell me what to buy or find…" autocomplete="off"></textarea>
+      <button id="send" type="submit" class="primary">Send</button>
+      <button id="stop" type="button" class="danger" hidden>Stop</button>
+    </form>
+  </footer>
+
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <h2>Settings</h2>
+      <label>Spending limit per order
+        <span class="row">
+          <input id="set-limit" type="number" min="0" step="0.01" required>
+          <input id="set-currency" type="text" maxlength="8" class="currency" aria-label="Currency">
+        </span>
+        <small>Approval requests above this are declined automatically.</small>
+      </label>
+      <label>Notes for the agent
+        <textarea id="set-notes" rows="7" placeholder="e.g. Prefer Amazon or Target. Shoe size 42 EU. Ship to my home address. No expedited shipping."></textarea>
+        <small>Sizes, favorite stores, brands you like or avoid, delivery preferences. Don't put passwords or card numbers here.</small>
+      </label>
+      <div class="dialog-actions">
+        <button value="cancel" class="ghost" formnovalidate>Cancel</button>
+        <button id="settings-save" value="save" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="lightbox"><img id="lightbox-img" alt="Screenshot of the order page"><form method="dialog"><button class="ghost">Close</button></form></dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
