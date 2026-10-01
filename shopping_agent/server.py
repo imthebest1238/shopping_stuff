@@ -1,19 +1,26 @@
 """Local web UI: a FastAPI app with one WebSocket that streams what the agent does.
 
-Only reachable from this computer (binds to 127.0.0.1), and only from a browser
-that opened the secret link printed in the terminal (cookie + Origin check), so
-web pages - including ones the agent visits - can't talk to it or approve orders.
+By default only reachable from this computer (binds to 127.0.0.1), and only from a
+browser that opened the secret link printed in the terminal (cookie + Origin check),
+so web pages - including ones the agent visits - can't talk to it or approve orders.
+
+With SHOP_PASSWORD set, a browser on another computer can log in with the password
+instead. The WebSocket then also accepts the address the browser actually used (its
+Origin must match the Host it connected to), which other websites can't fake.
 """
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
+import hmac
 import logging
 import math
 import secrets
 import time
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import anthropic
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -35,6 +42,19 @@ FORBIDDEN_PAGE = """<!doctype html><meta charset="utf-8"><title>Shopping Agent</
 <body style="font:16px system-ui;max-width:32rem;margin:4rem auto;padding:0 1rem">
 <h1>Almost there</h1><p>For your safety, open the shopping agent using the link printed in the
 terminal where you started it (it ends in <code>?token=…</code>).</p></body>"""
+
+
+LOGIN_PAGE = """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Shopping Agent</title>
+<body style="font:16px system-ui;max-width:22rem;margin:4rem auto;padding:0 1rem">
+<h1>Shopping Agent</h1>{error}
+<form method="post" action="/login">
+<label>Password<br><input type="password" name="password" autofocus required
+ style="font:inherit;width:100%;box-sizing:border-box;padding:.5rem;margin:.3rem 0 1rem"></label>
+<button style="font:inherit;padding:.5rem 1.2rem">Log in</button></form></body>"""
+
+MAX_LOGIN_FAILURES = 10
+LOGIN_LOCK_SECONDS = 15 * 60
 
 
 def load_or_create_token(data_dir: Path) -> str:
@@ -88,6 +108,12 @@ class App:
         self.config = config
         self.settings = UserSettings.load(config.settings_file)
         self.token = load_or_create_token(config.data_dir)
+        # The cookie value. With a password it also depends on the password, so changing
+        # the password logs out every browser.
+        self.session = self.token
+        if config.password:
+            self.session = hmac.new(self.token.encode(), config.password.encode(), hashlib.sha256).hexdigest()
+        self.login_failures: dict[str, tuple[int, float]] = {}  # client ip -> (failures, locked until)
         self.hub = Hub()
         ui_origins = {f"http://{host}:{config.port}" for host in {"127.0.0.1", "localhost", config.host}}
         self.allowed_origins = ui_origins
@@ -189,20 +215,58 @@ def create_app(config: Config, client: anthropic.AsyncAnthropic | None = None) -
     app.state.shop = state
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+    def logged_in(response: RedirectResponse) -> RedirectResponse:
+        response.set_cookie(COOKIE, state.session, httponly=True, samesite="strict", max_age=60 * 60 * 24 * 365)
+        return response
+
+    def origin_allowed(origin: str, host: str) -> bool:
+        if origin in state.allowed_origins:
+            return True
+        # With a password, also allow the address the browser connected to (another computer).
+        return bool(config.password) and bool(host) and urlparse(origin).netloc == host.lower()
+
     @app.get("/")
     async def index(request: Request):
         if secrets.compare_digest(request.query_params.get("token", ""), state.token):
-            response = RedirectResponse("/", status_code=303)
-            response.set_cookie(COOKIE, state.token, httponly=True, samesite="strict", max_age=60 * 60 * 24 * 365)
-            return response
-        if not secrets.compare_digest(request.cookies.get(COOKIE, ""), state.token):
+            return logged_in(RedirectResponse("/", status_code=303))
+        if not secrets.compare_digest(request.cookies.get(COOKIE, ""), state.session):
+            if config.password:
+                return RedirectResponse("/login", status_code=303)
             return HTMLResponse(FORBIDDEN_PAGE, status_code=403)
         return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-store"})
+
+    @app.get("/login")
+    async def login_page():
+        if not config.password:
+            return HTMLResponse(FORBIDDEN_PAGE, status_code=403)
+        return HTMLResponse(LOGIN_PAGE.format(error=""), headers={"Cache-Control": "no-store"})
+
+    @app.post("/login")
+    async def login(request: Request):
+        if not config.password:
+            return HTMLResponse(FORBIDDEN_PAGE, status_code=403)
+        ip = request.client.host if request.client else "?"
+        failures, locked_until = state.login_failures.get(ip, (0, 0.0))
+        if locked_until > time.time():
+            return HTMLResponse(LOGIN_PAGE.format(
+                error="<p style='color:#b00'>Too many wrong passwords. Try again in 15 minutes.</p>"), status_code=429)
+        body = (await request.body())[:4096].decode("utf-8", "replace")
+        password = (parse_qs(body).get("password") or [""])[0]
+        if secrets.compare_digest(password.encode(), config.password.encode()):
+            state.login_failures.pop(ip, None)
+            return logged_in(RedirectResponse("/", status_code=303))
+        failures += 1
+        lock = time.time() + LOGIN_LOCK_SECONDS if failures >= MAX_LOGIN_FAILURES else 0.0
+        state.login_failures[ip] = (0 if lock else failures, lock)
+        log.warning("wrong password from %s", ip)
+        await asyncio.sleep(1)  # slow down guessing
+        return HTMLResponse(LOGIN_PAGE.format(error="<p style='color:#b00'>Wrong password.</p>"), status_code=401)
 
     @app.websocket("/ws")
     async def websocket(ws: WebSocket):
         origin = (ws.headers.get("origin") or "").rstrip("/").lower()
-        if origin not in state.allowed_origins or not secrets.compare_digest(ws.cookies.get(COOKIE, ""), state.token):
+        host = ws.headers.get("host") or ""
+        if not origin_allowed(origin, host) or not secrets.compare_digest(ws.cookies.get(COOKIE, ""), state.session):
             await ws.close(code=4403)
             return
         await ws.accept()

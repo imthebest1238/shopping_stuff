@@ -28,6 +28,9 @@ def main() -> None:
     if config.host not in {"127.0.0.1", "localhost", "::1"} and not os.environ.get("SHOP_IN_DOCKER"):
         print(f"Warning: SHOP_HOST={config.host} makes the agent reachable from other computers.\n", file=sys.stderr)
 
+    if config.password:
+        print("  Password login is on: open http://<this computer's address>:"
+              f"{config.port}/ from another computer and enter SHOP_PASSWORD.")
     app = create_app(config)
     host = "127.0.0.1" if config.host in {"0.0.0.0", "::"} else config.host
     url = f"http://{host}:{config.port}/?token={app.state.shop.token}"

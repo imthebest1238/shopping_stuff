@@ -81,9 +81,16 @@ copied into the image. Stop it with `docker compose down`.
 **Prebuilt image / Portainer:** GitHub Actions (`.github/workflows/docker-image.yml`) runs the tests and
 pushes the image to `ghcr.io/<owner>/<repo>` on every push (`:latest` on the default branch, plus a
 tag per branch and per commit). Deploy it with `docker-compose.portainer.yml` as a Portainer stack,
-setting `ANTHROPIC_API_KEY` and `SHOPPING_AGENT_IMAGE` as stack environment variables. The chat link
-and VNC password are in the container logs. Reach it from another computer through an SSH tunnel:
-`ssh -L 8000:127.0.0.1:8000 -L 6080:127.0.0.1:6080 user@docker-host`.
+setting `SHOPPING_AGENT_IMAGE`, `ANTHROPIC_API_KEY`, `SHOP_PASSWORD` and optionally `VNC_PASSWORD` as
+stack environment variables. That stack is reachable from your network:
+
+- **Chat page:** `http://<docker-host-ip>:8000`, log in with `SHOP_PASSWORD`
+- **Agent's browser:** `http://<docker-host-ip>:6080/vnc.html?autoconnect=1&resize=scale`, with
+  `VNC_PASSWORD` (or the random one shown in the container logs)
+
+It is plain HTTP, so keep it on your home network and never forward these ports to the internet.
+Ten wrong passwords in a row lock the login for 15 minutes; changing `SHOP_PASSWORD` logs out every
+browser.
 
 ## Using it
 
@@ -126,6 +133,8 @@ Put these in the `.env` file (see `.env.example`):
 | `SHOP_OPEN_UI` | `true` | Open the chat page automatically |
 | `SHOP_DATA_DIR` | `./data` | Where settings and the browser profile are kept |
 | `SHOP_HEADLESS` | `false` | Hide the agent's browser window (not recommended) |
+| `SHOP_PASSWORD` | (none) | Lets other computers log in to the chat page with this password (for Docker / a server) |
+| `VNC_PASSWORD` | (random) | Docker only: password for the agent's browser view (first 8 characters count) |
 
 The spending limit and your notes are set on the chat page (Settings) and saved in `data/settings.json`.
 

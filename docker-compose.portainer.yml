@@ -1,34 +1,38 @@
 # Portainer stack for the shopping agent (Stacks > Add stack > Web editor: paste this file).
 #
 # Set these under "Environment variables" in Portainer:
+#   SHOPPING_AGENT_IMAGE  e.g. ghcr.io/imthebest1238/shopping_stuff:latest
 #   ANTHROPIC_API_KEY     your Anthropic API key (required)
-#   SHOPPING_AGENT_IMAGE  e.g. ghcr.io/<your-github-user>/shopping_stuff:latest
+#   SHOP_PASSWORD         password for the chat page (required, use a long one)
+#   VNC_PASSWORD          password for the agent's browser view (optional; only the first
+#                         8 characters count; if empty, a random one is shown in the logs)
 #   SHOP_MODEL / SHOP_EFFORT / SHOP_MAX_STEPS  optional, see README
 #
-# After deploying, open the container's logs in Portainer: they show the secret chat link
-# and the VNC password for the agent's browser window.
+# Then, from any computer on your network:
+#   Chat page:            http://<docker-host-ip>:8000         (log in with SHOP_PASSWORD)
+#   Agent's browser:      http://<docker-host-ip>:6080/vnc.html?autoconnect=1&resize=scale
 #
-# The ports are published on the Docker host's 127.0.0.1 only, so nobody on your network can
-# approve purchases or control the browser. From your laptop, open an SSH tunnel to the host:
-#   ssh -L 8000:127.0.0.1:8000 -L 6080:127.0.0.1:6080 <user>@<docker-host>
-# then use http://127.0.0.1:8000/?token=... and
-#      http://127.0.0.1:6080/vnc.html?autoconnect=1&resize=scale
+# This is plain HTTP: keep it on your home network, don't forward these ports to the internet.
+# The chat page can approve purchases and the browser view controls your logged-in stores.
 
 services:
   shopping-agent:
-    image: ${SHOPPING_AGENT_IMAGE:?set SHOPPING_AGENT_IMAGE, e.g. ghcr.io/<your-github-user>/shopping_stuff:latest}
+    image: ${SHOPPING_AGENT_IMAGE:?set SHOPPING_AGENT_IMAGE, e.g. ghcr.io/imthebest1238/shopping_stuff:latest}
     container_name: shopping-agent
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY}
+      SHOP_PASSWORD: ${SHOP_PASSWORD:?set SHOP_PASSWORD - the chat page is reachable from your network}
+      VNC_PASSWORD: ${VNC_PASSWORD:-}
       SHOP_MODEL: ${SHOP_MODEL:-claude-opus-5-5}
       SHOP_EFFORT: ${SHOP_EFFORT:-medium}
       SHOP_MAX_STEPS: ${SHOP_MAX_STEPS:-150}
-      SHOP_HOST: 0.0.0.0        # inside the container only; see ports below
+      SHOP_HOST: 0.0.0.0
       SHOP_OPEN_UI: "false"
       TZ: ${TZ:-Europe/Zurich}
     ports:
-      - "127.0.0.1:8000:8000"   # chat page
-      - "127.0.0.1:6080:6080"   # the agent's browser window (noVNC, password protected)
+      # host-port:container-port. Change the left number to use another port on the host.
+      - "8000:8000"   # chat page (password protected)
+      - "6080:6080"   # the agent's browser window (noVNC, password protected)
     volumes:
       - shopping-data:/app/data # settings, memory, VNC password and store logins (keep private!)
     shm_size: "1gb"             # Chromium needs more than Docker's 64 MB default

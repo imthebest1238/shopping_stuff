@@ -48,6 +48,7 @@ class Config:
     browser_executable: str | None = None
     max_steps: int = 150
     open_ui: bool = True
+    password: str | None = None  # SHOP_PASSWORD: allow login from other computers
 
     @property
     def profile_dir(self) -> Path:
@@ -71,6 +72,7 @@ class Config:
             browser_executable=os.environ.get("SHOP_BROWSER_EXECUTABLE") or None,
             max_steps=int(os.environ.get("SHOP_MAX_STEPS", cls.max_steps)),
             open_ui=_env_bool("SHOP_OPEN_UI", cls.open_ui),
+            password=os.environ.get("SHOP_PASSWORD") or None,
         )
 
 
